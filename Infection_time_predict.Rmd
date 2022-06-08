@@ -1,0 +1,109 @@
+---
+title: "Untitled"
+author: "untilted"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+\newpage
+```{r}
+# Input the Fleming and Harrington Count Data (fhcnt) and name the covariates
+fhcnt = read.table("https://biostatcenter.gwu.edu/sites/biostatcenter.gwu.edu/files/Lachin%20Files/fhcnt.txt",header=F)
+names(fhcnt)=c("id","z1","z2","z3","z4","z5","z6","z7","z8","z9","nevents","futime")
+```
+
+# a)
+```{r}
+model <- glm(nevents~as.factor(z1)+as.factor(z2)+z3+z4+z5+as.factor(z6)+as.factor(z7)+as.factor(z8)+as.factor(z9)+offset(log(futime)),family = poisson(link = "log"),data = fhcnt)
+
+summary(model)
+```
+# b)
+
+```{r}
+rd <- residuals.glm(model,"deviance")
+fv <- model$fitted.values
+plot(fv,rd,xlab="fitted value",ylab="deviance residual",main="scatterplot")
+abline(h=2)
+abline(h=-2)
+```
+We can see the there are some points lies above the two lines, thus the model is not fitted.
+
+```{r}
+qqnorm(rd)
+abline(a=0,b=1)
+```
+
+We can see that in the middle of the graph, points are not lie along with the 
+line, thus the model is not fitted
+
+# c)
+The estimated for treatment group is 1.156140
+```{r}
+exp(1.156140)
+```
+Thus the relative rate is 3.177644 = $\frac{\lambda_2}{\lambda_1}$ which $\lambda_2$ 
+represent take placebo and $\lambda_1$ represent take interferon. Thus $\lambda_2 > \lambda_1$,
+take interferon actually decrease the rate.
+Thus treatment with interferon effective in reducing serious infections among children with CGD
+
+```{r}
+LOG_CI = 1.156140 + c(-1,1)*1.96*0.277853
+exp(LOG_CI)
+```
+95% confidence interval of relative rate is [1.843283 ,5.477955]
+
+\newpage
+
+# d)
+```{r}
+x = as.matrix(c(0,0,0,0,0,0,0,0,0,0,1,-1),ncol=1)
+v = summary(model)$cov.unscaled
+se<-sqrt(t(x) %*% v %*% x)
+mle = -0.955742-(-0.788223)
+CI <- mle + c(-1,1)*1.96*se[1]
+exp(CI)
+```
+
+Thus the 95% Confidence Interval of relative rate is [0.2761451 2.5903447]
+
+# e)
+
+$\hat\mu=\lambda \times t=exp(log(\hat\lambda)+log(t)$
+
+$log(\hat\lambda) = x^T\hat\beta$
+
+```{r}
+beta = c(-5.348270,1.156140,0.754567,-0.083938,0.007649,0.010345,-1.958265,0.668546,
+         -0.856499,-0.110733,-0.955742,-0.788223)
+
+x = c(1,0,0,12,142,34,0,1,0,1,0,0)
+log_hat = sum(beta*x)
+mu = exp(log_hat+log(365.25))
+mu
+```
+Estimated number of infections are 4.668123
+
+# f)
+
+The purpose of this study was to find the different variables that would influence
+the results of a serious infections among children with chronic granulotomous disease.
+
+The treatment group: interferon versus placebo (Odds Ratio(OR) = 3.18) and 
+Inheritance pattern: X-linked  versus autosomal recessive (OR=2.127) were associated
+with increased odds the response
+
+Age (OR=0.919),  Corticosteroid use on entry: yesversus no(OR=0.1411) 
+Gender: male  versus female (OR=0.4246) and Type of hospital: Amsterdam (OR = 0.3845)
+were associated with decreased odds the response
+```{r}
+# Characteristics siginificantly associated with increased odds of response
+exp(model$coeff)[model$coeff>0 & summary(model)$coeff[,4]<0.05]
+
+# Characteristics siginificantly associated with decreased odds of response
+exp(model$coeff)[model$coeff<0 & summary(model)$coeff[,4]<0.05]
+```
+
